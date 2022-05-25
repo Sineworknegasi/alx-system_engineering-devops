@@ -1,0 +1,3 @@
+-copy_html
+#!/bin/bash
+cp *.html ..
