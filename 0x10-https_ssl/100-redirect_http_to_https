@@ -8,6 +8,12 @@ global
         group haproxy
         daemon
 
+
+        # See: https://ssl-config.mozilla.org/#server=haproxy&server-version=2.0.3&config=intermediate
+        ssl-default-bind-ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:>
+        ssl-default-bind-ciphersuites TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256
+        ssl-default-bind-options ssl-min-ver TLSv1.2 no-tls-tickets
+
 defaults
         log     global
         mode    http
@@ -24,22 +30,15 @@ defaults
         errorfile 503 /etc/haproxy/errors/503.http
         errorfile 504 /etc/haproxy/errors/504.http
 
-frontend front_http
+
+frontend my_frontend
         bind *:80
-		redirect scheme https code 301 if !{ ssl_fc }
-        default_backend back_http
+        bind *:443 ssl crt /etc/letsencrypt/live/sinework.tech/fullchain.pem
+        http-request redirect scheme https code 301 unless { ssl_fc }
+        mode http
+        default_backend my_backend_1
 
-frontend front_https
-        bind 0.0.0.0:443 ssl crt /etc/letsencrypt/live/www.sinework.tech/all.pem
-        acl    letsencrypt-acl path_beg /.well-known/acme-challenge/
-		use_backend letsencrypt-backend if letsencrypt-acl
-        default_backend back_http
-
-backend back_http
+backend my_backend_1
         balance roundrobin
-		redirect scheme https if !{ ssl_fc }
         server 65186-web-01 54.90.47.111:80 check
         server 65186-web-02 54.157.128.9:80 check
-
-backend letsencrypt-backend
-        server letsencrypt 127.0.0.1:8888

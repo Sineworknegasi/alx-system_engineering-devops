@@ -1,17 +1,18 @@
 #!/usr/bin/env bash
-# This bash script displays information about the subdomains
+#Configure your domain zone so that the subdomain www and display information about subdomains
 
-dns_info_analyzer() {
-	result=$(dig "$2"."$1" | grep -A1 'ANSWER SECTION'| tail -1 | awk '{print $4 " " $5}')
-	echo "$result" "$2" | awk '{print "The subdomain " $3 " is a " $1 " record and points to " $2}'
-}
-
-if [ "$#" == 2 ]
+if [ "$#" = 1 ]
 then
-	dns_info_analyzer "$1" "$2"
-else
-	dns_info_analyzer "$1" "www"
-	dns_info_analyzer "$1" "lb-01"
-	dns_info_analyzer "$1" "web-01"
-	dns_info_analyzer "$1" "web-02"
+    subdomains=("www" "lb-01" "web-01" "web-02")
+    for sub_domain in "${subdomains[@]}"
+    do
+	record_type=$(dig $sub_domain.$1 | grep -A1 'ANSWER SECTION' | tail -1 | awk '{print $4}')
+        destination=$(dig $sub_domain.$1 | grep -A1 'ANSWER SECTION' | tail -1 | awk '{print $5}')
+	echo "The subdomain $sub_domain is a $record_type record and points to $destination"
+    done
+elif [ "$#" = 2 ]
+then
+    record_type=$(dig $2.$1 | grep -A1 'ANSWER SECTION' | tail -1 | awk '{print $4}')
+    destination=$(dig $2.$1 | grep -A1 'ANSWER SECTION' | tail -1 | awk '{print $5}')
+    echo "The subdomain $2 is a $record_type record and points to $destination"
 fi
