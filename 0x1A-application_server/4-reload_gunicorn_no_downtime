@@ -1,1 +1,24 @@
 #!/usr/bin/env bash
+
+# Save the Gunicorn master process ID in a file
+echo `pidof gunicorn` > /var/run/gunicorn.pid
+
+# Get the number of worker processes
+workers=`cat /var/run/gunicorn.pid | xargs ps -o pid --no-headers | wc -l`
+
+# Loop through each worker process
+for i in `seq 1 $workers`;
+do
+  # Send a signal to each worker process to finish processing the current request
+  kill -WINCH `cat /var/run/gunicorn.pid`
+done
+
+# Wait for all worker processes to shut down
+while [ -e /proc/$(cat /var/run/gunicorn.pid) ];
+do
+  sleep 1
+done
+
+# Start a new Gunicorn process with the updated application code or configuration
+gunicorn --bind 0.0.0.0:5001 web_flask.6-number_odd_or_even:app &
+
